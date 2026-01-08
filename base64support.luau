@@ -1,0 +1,112 @@
+--!optimize 2
+
+local HttpService = game:GetService("HttpService")
+
+-- =====================
+-- DATA NORMALIZATION
+-- =====================
+
+local function normalizeToString(value)
+	local t = typeof(value)
+
+	if t == "string" then
+		return value
+	elseif t == "number" or t == "boolean" then
+		return tostring(value)
+	elseif t == "table" then
+		local ok, encoded = pcall(HttpService.JSONEncode, HttpService, value)
+		return ok and encoded or tostring(value)
+	elseif t == "Instance" then
+		return value:GetFullName()
+	else
+		return tostring(value)
+	end
+end
+
+-- =====================
+-- BASE64 SELECTION
+-- =====================
+
+if typeof(base64encode) == "function" and typeof(base64decode) == "function" then
+	-- Native base64 available
+	print(1)
+
+	local _nativeEncode = base64encode
+	local _nativeDecode = base64decode
+
+	function base64encode(data)
+		return _nativeEncode(normalizeToString(data))
+	end
+
+	function base64decode(data)
+		return _nativeDecode(data)
+	end
+else
+	-- Script fallback
+	print(2)
+
+	local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	local b64lookup = {}
+
+	for i = 1, #b64chars do
+		b64lookup[b64chars:sub(i, i)] = i - 1
+	end
+
+	function base64encode(data)
+		data = normalizeToString(data)
+
+		local result = table.create(math.ceil(#data * 4 / 3))
+		local padding = 2 - ((#data - 1) % 3)
+
+		for i = 1, #data, 3 do
+			local b1, b2, b3 = string.byte(data, i, i + 2)
+			local n =
+				bit32.lshift(b1 or 0, 16) +
+				bit32.lshift(b2 or 0, 8) +
+				(b3 or 0)
+
+			result[#result + 1] = b64chars:sub(bit32.band(bit32.rshift(n, 18), 63) + 1, bit32.band(bit32.rshift(n, 18), 63) + 1)
+			result[#result + 1] = b64chars:sub(bit32.band(bit32.rshift(n, 12), 63) + 1, bit32.band(bit32.rshift(n, 12), 63) + 1)
+			result[#result + 1] = b64chars:sub(bit32.band(bit32.rshift(n, 6), 63) + 1, bit32.band(bit32.rshift(n, 6), 63) + 1)
+			result[#result + 1] = b64chars:sub(bit32.band(n, 63) + 1, bit32.band(n, 63) + 1)
+		end
+
+		for _ = 1, padding % 3 do
+			result[#result] = "="
+		end
+
+		return table.concat(result)
+	end
+
+	function base64decode(data)
+		data = tostring(data):gsub("[^" .. b64chars .. "=]", "")
+		local result = {}
+
+		for i = 1, #data, 4 do
+			local c1 = b64lookup[data:sub(i, i)] or 0
+			local c2 = b64lookup[data:sub(i + 1, i + 1)] or 0
+			local c3 = b64lookup[data:sub(i + 2, i + 2)] or 0
+			local c4 = b64lookup[data:sub(i + 3, i + 3)] or 0
+
+			local n =
+				bit32.lshift(c1, 18) +
+				bit32.lshift(c2, 12) +
+				bit32.lshift(c3, 6) +
+				c4
+
+			local b1 = bit32.band(bit32.rshift(n, 16), 255)
+			local b2 = bit32.band(bit32.rshift(n, 8), 255)
+			local b3 = bit32.band(n, 255)
+
+			if data:sub(i + 2, i + 2) == "=" then
+				result[#result + 1] = string.char(b1)
+			elseif data:sub(i + 3, i + 3) == "=" then
+				result[#result + 1] = string.char(b1, b2)
+			else
+				result[#result + 1] = string.char(b1, b2, b3)
+			end
+		end
+
+		return table.concat(result)
+	end
+end
