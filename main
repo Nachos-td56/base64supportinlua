@@ -1,5 +1,7 @@
 --!optimize 2
 
+--the optimize 2 flag is incase someone literally runs this in roblox
+
 local HttpService = game:GetService("HttpService")
 
 -- =====================
@@ -28,7 +30,7 @@ end
 -- =====================
 
 if typeof(base64encode) == "function" and typeof(base64decode) == "function" then
-	-- Native base64 available
+	-- Native base64 available (congrats)
 	print(1)
 
 	local _nativeEncode = base64encode
@@ -42,7 +44,7 @@ if typeof(base64encode) == "function" and typeof(base64decode) == "function" the
 		return _nativeDecode(data)
 	end
 else
-	-- Script fallback
+	-- Script fallback (not congrats)
 	print(2)
 
 	local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
