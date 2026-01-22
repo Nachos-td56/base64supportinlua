@@ -8,21 +8,8 @@ local HttpService = game:GetService("HttpService")
 -- DATA NORMALIZATION
 -- =====================
 
-local function normalizeToString(value)
-	local t = typeof(value)
-
-	if t == "string" then
-		return value
-	elseif t == "number" or t == "boolean" then
-		return tostring(value)
-	elseif t == "table" then
-		local ok, encoded = pcall(HttpService.JSONEncode, HttpService, value)
-		return ok and encoded or tostring(value)
-	elseif t == "Instance" then
-		return value:GetFullName()
-	else
-		return tostring(value)
-	end
+local function normalizeToString(value) -- NOTE, THIS IS IN TESTING. IF IT THROWS A ERROR, CONTACT ME
+	return tostring(value)
 end
 
 -- =====================
